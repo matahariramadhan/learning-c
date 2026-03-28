@@ -40,6 +40,8 @@ I use AI as a reviewer and safety guide, not as a code generator.
 - Points out dangerous mistakes (memory issues, unsafe APIs, bad assumptions).
 - Suggests debugging steps, test cases, and learning checkpoints.
 - Helps me stay aligned with the roadmap in `journey.md`.
+- Encourages meaningful Git commits after exercises, project milestones, and important bug fixes.
+- Encourages small tooling or automation upgrades only when repeated friction justifies them.
 
 ### What AI does not do
 - Does not write final code for me.
@@ -62,11 +64,30 @@ AI should:
 I write the code first.
 AI helps me understand failures, fix root causes, and improve engineering discipline.
 
+### Recording Rule
+When I say `record it` or `update record`, AI should update both:
+- `notes/`
+- `writeups/`
+
+By default, AI should record concrete lab/project work, debugging steps, and lessons that directly affected the work.
+AI should not automatically record general conceptual discussion unless I explicitly ask.
+
+Recorded writeups should prefer this structure:
+1. mistaken attempt
+2. signal/error
+3. root cause
+4. corrected model
+5. lesson learned
+
 ## Rules
 - Practice only in isolated, self-owned labs.
 - Never test systems without permission.
 - Treat warnings as errors.
 - Fix sanitizer issues before adding features.
+- Commit after each meaningful exercise, project milestone, or bug fix.
+- Prefer clear commit messages over commit spam; the history should show real progress.
+- When manual testing becomes repetitive, add small automation at the simplest useful level.
+- When tooling pain becomes repetitive, improve the workflow without derailing the learning goal.
 
 ## C Build Baseline
 Use this default compile setup:
