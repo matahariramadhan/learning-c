@@ -1,0 +1,23 @@
+# C build artifatcs
+*.o
+*.out
+*.a
+*.so
+*.dylib
+*.exe
+
+# Common local binaries
+main
+
+# Crash dumps
+core
+core.*
+vgcore.*
+
+# Editor temp files
+*.swp
+*.swo
+*~
+
+# OS junk
+.DS_Store
