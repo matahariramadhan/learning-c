@@ -785,3 +785,49 @@ Mental model:
 - input helpers should first work correctly, then be wrapped into cleaner higher-level functions
 - this checkpoint is a working step in the project, not the final binary-safe XOR tool yet
 - for binary file processing, the number of bytes read (`nread`) is the boundary that matters, not string terminators
+
+## 2026-03-29 - `project02_xor_file_tool` checkpoint 2
+
+Goal:
+- move the XOR tool from string-oriented key handling toward a cleaner numeric key model and confirm whole-file chunked processing works
+
+Key concepts:
+- `strtol` is the right standard-library tool for parsing a numeric key from text input
+- `strtol` does not report failure with just return value `0`; parsing validity must be checked with `endptr`
+- a byte-oriented XOR tool should use a numeric key type such as `unsigned char`, not an ASCII character from a short string buffer
+- repeated `fread`/`fwrite` in a loop is the right whole-file pattern; one `fread` is only one chunk
+- retry loops should distinguish retryable input-too-long cases from hard input-read failures
+
+Important corrections:
+- treating `key[0]` from a tiny string buffer as the XOR key was the wrong model because it encoded an ASCII character, not a validated numeric byte value
+- checking `read_input(...) != 0` without branching by status caused bad retry-loop logic; only the too-long case should retry
+- the helper contract for `read_input` became clearer after returning distinct statuses for read failure, too-long input, and zero-capacity misuse
+- moving from a single-read design to a chunk loop fixed the earlier 300-byte test truncation; `big.txt`, `big.enc`, and `big.dec` all reached 300 bytes and `cmp big.txt big.dec` succeeded
+
+Mental model:
+- input acquisition and semantic validation are separate layers: `read_input` gets a clean line, `strtol` interprets it as a number
+- one `fread` call reads one chunk, not the whole file
+- the chunk boundary is `nread`, and the program should process and write exactly those bytes each iteration
+
+## 2026-03-30 - `project02_xor_file_tool` v1
+
+Goal:
+- finish a usable v1 of the XOR file tool with safer interactive input handling, early input-file validation, numeric key parsing, and whole-file chunked processing
+
+Key concepts:
+- the input file should be opened immediately after the path is entered so bad paths fail fast before asking for later inputs
+- `switch` works well for handling explicit `read_input` status codes because the retryable and fatal cases are different
+- `strtol` is the right parser for turning text input into a numeric key
+- chunked `fread`/`fwrite` is the correct whole-file pattern for a byte-oriented tool
+- `fwrite` must be checked against `nread`, and `ferror(file)` must be checked after the read loop
+
+Important corrections:
+- a giant `while (...)` condition that combined reading, `~` conversion, and `fopen` was rejected because it was hard to reason about and broke under normal control-flow analysis
+- the input-file flow was reordered so the program opens the input file before asking for the key and output filename
+- the key path was changed from an ASCII-character-style model to `strtol` parsing with explicit validation
+- the whole-file loop now writes exactly the number of bytes read each iteration and checks for write failures and stream read errors
+
+Mental model:
+- `read_input` acquires a clean line; later code decides what that line means
+- retry only the retryable case; fail fast on hard input/read errors
+- a finished v1 does not need every cosmetic cleanup solved, but it does need the core behavior to be coherent and testable
