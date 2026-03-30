@@ -77,61 +77,120 @@ int convert_to_home(char *ptr, size_t size) {
 int main(void) {
         printf("===File Encryption Tool===\nInput filepath :");
         char path[256];
-        int status;
-        while ((status = read_input(path, sizeof path)) != 0) {
-                if (status == 2) {
-                        fprintf(stderr, "Input too long. Try again.\n");
-                        printf("Input filepath: ");
+        FILE *file = NULL;
+        while (1) {
+                switch (read_input(path, sizeof path)) {
+                case 0:
+                        break;
+                case 1:
+                        fprintf(stderr, "Error reading input.\n");
+                        return 1;
+                case 2:
+                        fprintf(stderr, "Input filename too long\n");
+                        printf("Input filename: ");
+                        continue;
+                case 3:
+                        fprintf(stderr,
+                                "Internal error: capacity should not 0\n");
+                        return 1;
+                default:
+                        return 1;
+                }
+
+                int home_count = convert_to_home(path, sizeof path);
+                if (home_count > 1) {
+                        fprintf(stderr, "Found more than 1 ~.\n");
+                        printf("Input filename: ");
                         continue;
                 }
-                return 1;
+
+                file = fopen(path, "rb");
+                if (file == NULL) {
+                        fprintf(stderr, "Error opening file\n");
+                        printf("Input filename: ");
+                        continue;
+                }
+
+                break;
         }
 
         char input_key[3];
         printf("Input the key (0 to 9): ");
-        while ((status = read_input(input_key, sizeof input_key)) != 0) {
-                if (status == 2) {
-                        fprintf(stderr, "key too long. Try again.\n");
-                        printf("Input the key (0 to 9) ");
+        long value;
+        while (1) {
+                switch (read_input(input_key, sizeof input_key)) {
+                case 0:
+                        break;
+                case 1:
+                        fprintf(stderr, "Error reading input\n");
+                        fclose(file);
+                        return 1;
+                case 2:
+                        fprintf(stderr,
+                                "Key too long, should be one digit.\n");
+                        printf("Key: ");
                         continue;
+                case 3:
+                        fprintf(stderr, "Capacity should not be 0\n");
+                        fclose(file);
+                        return 1;
+                default:
+                        fclose(file);
+                        return 1;
                 }
-                return 1;
-        }
 
-        char *end;
-        long value = strtol(input_key, &end, 10);
-        if (end == input_key || *end != '\0' || value < 0 || value > 255) {
-                fprintf(stderr, "Invalid key!");
-                return 1;
+                char *end;
+                value = strtol(input_key, &end, 10);
+                if (end == input_key || *end != '\0' || value < 0 ||
+                    value > 9) {
+                        fprintf(stderr, "Invalid key.\n");
+			printf("Key (0 - 9): ");
+			continue;
+                }
+                break;
         }
         unsigned char key = (unsigned char)value;
 
         char output_path[256];
         printf("Output filename: ");
-        while ((status = read_input(output_path, sizeof output_path)) !=
-               0) {
-                if (status == 2) {
+        FILE *output = NULL;
+        while (1) {
+                switch (read_input(output_path, sizeof output_path)) {
+                case 0:
+                        break;
+                case 1:
+                        fprintf(stderr, "Error reading input\n");
+                        fclose(file);
+                        return 1;
+                case 2:
+                        fprintf(stderr, "Input too long. Try again\n");
+                        printf("Output filepath: ");
+                        continue;
+                case 3:
+                        fprintf(stderr, "Capacity should not 0\n");
+                        fclose(file);
+                        return 1;
+                default:
+                        fclose(file);
+                        return 1;
+                }
+
+                int home_count =
+                    convert_to_home(output_path, sizeof output_path);
+                if (home_count > 1) {
                         fprintf(stderr,
-                                "Output filename too long. Try again.\n");
-                        printf("Output filename: ");
+                                "Found more than 1 ~. Try again.\n");
+                        printf("Output filepath: ");
                         continue;
                 }
-                return 1;
-        }
+                output = fopen(output_path, "wb");
+                if (output == NULL) {
+                        fprintf(stderr, "Error opening output file\n");
+                        fclose(file);
+                        return 1;
+                }
 
-        convert_to_home(path, sizeof path);
-        FILE *file = fopen(path, "rb");
-        if (file == NULL) {
-                fprintf(stderr, "Fail to open file\n");
-                return 1;
-        }
-
-        convert_to_home(output_path, sizeof output_path);
-        FILE *output = fopen(output_path, "wb");
-        if (output == NULL) {
-                fprintf(stderr, "Error opening output file");
-                fclose(file);
-                return 1;
+                break;
         }
 
         unsigned char buffer[4096];
@@ -141,7 +200,19 @@ int main(void) {
                 for (size_t i = 0; i < nread; i++) {
                         encrypted[i] = (char)buffer[i] ^ key;
                 }
-                fwrite(encrypted, 1, nread, output);
+                if (fwrite(encrypted, 1, nread, output) != nread) {
+                        fprintf(stderr, "Error writing output file\n");
+                        fclose(file);
+                        fclose(output);
+                        return 1;
+                }
+        }
+
+        if (ferror(file)) {
+                fprintf(stderr, "Error reading file.\n");
+                fclose(file);
+                fclose(output);
+                return 1;
         }
 
         fclose(file);
